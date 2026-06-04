@@ -23,26 +23,26 @@ substitutions:
 
 #####  Days and months #####
 ## Change the values on the right to match your locale ##
-  monday: Monday
-  tuesday: Tuesday
-  wednesday: Wednesday
-  thursday: Thursday
-  friday: Friday
-  saturday: Saturday
-  sunday: Sunday
+  monday: Montag
+  tuesday: Dienstag
+  wednesday: Mittwoch
+  thursday: Donnerstag
+  friday: Freitag
+  saturday: Samstag
+  sunday: Sonntag
 
-  jan: January
-  feb: February
-  mar: March
+  jan: Januar
+  feb: Februar
+  mar: März
   apr: April
-  may: May
-  jun: June
-  jul: July
+  may: Mai
+  jun: Juni
+  jul: Juli
   aug: August
   sept: September
-  oct: October
+  oct: Oktober
   nov: November
-  dec: December
+  dec: Dezember
 #####################################################################
 
 ##### DO NOT CHANGE SUBSTITUTIONS BELOW THIS LINE ######
@@ -128,6 +128,11 @@ wifi:
   on_disconnect:
     - lambda: |-
         id(wifi_connection) = false;
+  
+  manual_ip:
+    static_ip: 192.168.178.115
+    gateway: 192.168.178.1
+    subnet: 255.255.255.0
 
 captive_portal:
 time:
@@ -733,6 +738,26 @@ light:
     default_transition_length: 50ms
 
 sensor:
+  - platform: homeassistant
+    id: Temperature_gross_links
+    entity_id: sensor.fritz_dect_302_1_gross_links_temperature
+    internal: true
+  
+  - platform: homeassistant
+    id: Temperature_klein_links
+    entity_id: sensor.fritz_dect_302_2_klein_links_temperature
+    internal: true
+  
+  - platform: homeassistant
+    id: Temperature_gross_rechts
+    entity_id: sensor.fritz_dect_302_3_gross_rechts_temperature
+    internal: true
+  
+  - platform: homeassistant
+    id: Temperature_kuche
+    entity_id: sensor.fritz_dect_302_4_kuche_temperature
+    internal: true
+
   - platform: aht10 # remove for no sensor version
     i2c_id: bus_b
     variant: AHT20
@@ -798,6 +823,33 @@ sensor:
     device_class: ""
 
 text_sensor:
+  # 1st row
+  - platform: homeassistant
+    id: light_wohnzimmer_stehlampe_state
+    entity_id: switch.wohnzimmer_stehlampe
+    internal: True
+
+  - platform: homeassistant
+    id: light_bad_state
+    entity_id: switch.switch_bad
+    internal: True
+
+  - platform: homeassistant
+    id: light_saule_state
+    entity_id: light.saule
+    internal: True
+
+  # 2ns row
+  - platform: homeassistant
+    id: light_wohnzimmer_state
+    entity_id: light.wohnzimmer
+    internal: True
+  
+  - platform: homeassistant
+    id: light_buero_state
+    entity_id: switch.smart_switch_buro_outlet
+    internal: True
+
   - id: text_request
     platform: template
     on_value:
@@ -1448,6 +1500,14 @@ font:
       - "\U000F1A1B"#gas
       - "\U000F1C3B"#battery charging/usb powered
       - "\U000F1C6F"#info
+      - "\U000F07C1"#dipswitches
+      - "\U000F08DD"#Stehlampe an
+      - "\U000F17C8"#Stehlampe aus
+      - "\U000F1252"#Haus mit Lampe
+      - "\U000F095F"#Desklamp on
+      - "\U000F1B1F"#Desklamp off
+      - "\U000F07D5"#Lavalampe
+      
 
 
   - file: "https://github.com/BigBobbas/ESP32-S3-Box3-Custom-ESPHome/raw/main/fonts/materialdesignicons-webfont.ttf"
@@ -1568,7 +1628,7 @@ display:
           it.printf(20, 75, id(icon_font_80), blue,"\U000F050F");
           it.printf(40, 120, id(my_font3), white, "%.f", id(s3temp).state); // remove for no sensor version
           it.printf(120, 75, id(icon_font_80), yellow,"\U000F06E8" );
-          it.printf(220, 75, id(icon_font_80), purple,"\U000F0210");
+          it.printf(220, 75, id(icon_font_80), blue,"\U000F07C1");  // Switches 
           it.printf(20, 155, id(icon_font_80), red,"\U000F075A");
           it.printf(120, 155, id(icon_font_80), blue,"\U000F0FCE");
           it.printf(220, 155, id(icon_font_80), lime,"\U000F08D6");
@@ -1746,15 +1806,91 @@ display:
           it.printf(250, 5, id(icon_font_55), green, "\U000F1828");
           }
           it.printf(20, 75, id(icon_font_80), light_blue,"\U000F050F");
+          it.printf(40, 120, id(my_font3), white, "%.f", id(Temperature_gross_links).state);
           it.printf(120, 75, id(icon_font_80), light_blue,"\U000F050F");
+          it.printf(140, 120, id(my_font3), white, "%.f", id(Temperature_gross_rechts).state);
           it.printf(220, 75, id(icon_font_80), light_blue, "\U000F050F");
+          it.printf(240, 120, id(my_font3), white, "%.f", id(Temperature_klein_links).state);
           it.printf(20, 155, id(icon_font_80), light_blue,"\U000F050F");
-          it.printf(120, 155, id(icon_font_80), light_blue,"\U000F050F");
-          it.printf(220, 155, id(icon_font_80), light_blue, "\U000F050F");
+          it.printf(40, 200, id(my_font3), white, "%.f", id(Temperature_kuche).state);
+
+      - id: flat_page ##### flat page #####
+        lambda: |-
+          it.fill(id(black));
+          int SCREEN_W = 320;
+          int SCREEN_H = 240;
+          int bw = 30;
+          int gw = (SCREEN_W - 2 * bw) / 2;
+          int gh = (SCREEN_H - 2 * bw) / 2;
+          int sw = gw * 8 / 10;
+
+          // Get center coordinates
+          // Groß links
+          int gl_x = bw;
+          int gl_y = bw;
+          int gl_cx = gl_x + gw / 2;
+          int gl_cy = gl_y + gh / 2;
+
+          // Groß rechts
+          int gr_x = bw + gw;
+          int gr_y = bw;
+          int gr_cx = gr_x + gw / 2;
+          int gr_cy = gr_y + gh / 2;
+
+          // Klein links
+          int kl_x = bw;
+          int kl_y = bw + gh;
+          int kl_cx = kl_x + sw / 2;
+          int kl_cy = kl_y + gh / 2;
+
+          // Bad
+          int bad_x = bw + gw + gw - sw;
+          int bad_y = bw + gh;
+          int bad_cx = bad_x + sw / 2;
+          int bad_cy = bad_y + (gh / 2) / 2;
+
+          // Küche
+          int kue_x = bw + gw + gw - sw;
+          int kue_y = bw + gh + gh / 2;
+          int kue_cx = kue_x + sw / 2;
+          int kue_cy = kue_y + (gh / 2) / 2;
+
+          // Outline
+          it.rectangle(bw, bw, SCREEN_W - 2 * bw, SCREEN_H - 2 * bw, white);
+          // Groß links
+          it.rectangle(bw, bw, gw, gh, white);
+          // Groß rechts
+          it.rectangle(bw + gw, bw, gw, gh, white);
+          // Klein links
+          it.rectangle(bw, bw + gh, sw, gh, white);
+          // Bad
+          it.rectangle(bw + gw + gw - sw, bw + gh, sw, int(gh / 2), white);
+          // Küche
+          it.rectangle(bw + gw + gw - sw, bw + gh + int(gh / 2), sw, int(gh / 2), white);
+
+          it.printf(gl_cx, gl_cy, id(my_font3), white, "%.f", id(Temperature_gross_links).state);
+          it.printf(gr_cx, gr_cy, id(my_font3), white, "%.f", id(Temperature_gross_rechts).state);
+          it.printf(kl_cx, kl_cy, id(my_font3), white, "%.f", id(Temperature_klein_links).state);
+          it.printf(kue_cx, kue_cy, id(my_font3), white, "%.f", id(Temperature_kuche).state);
+          
 
       - id: lights_page ##### lights page ####
         lambda: |-
           it.fill(id(black));
+
+          auto draw_light = [&](auto entity,
+                      int x,
+                      int y,
+                      const char *on_icon,
+                      const char *off_icon) {
+
+            if (entity->state == "on") {
+              it.printf(x, y, id(icon_font_80), yellow, on_icon);
+            } else {
+              it.printf(x, y, id(icon_font_80), blue_drk, off_icon);
+            }
+          };
+
           if(id(api_connection) == true) {
                   it.printf(15, 5, id(icon_font_55), blue, "\U000F07D0");
           } else {
@@ -1786,12 +1922,15 @@ display:
           } else if(id(alarm_status).state == "armed_night") {
           it.printf(250, 5, id(icon_font_55), green, "\U000F1828");
           }
-          it.printf(20, 75, id(icon_font_80), light_blue,"\U000F0335");
-          it.printf(120, 75, id(icon_font_80), light_blue,"\U000F0335");
-          it.printf(220, 75, id(icon_font_80), light_blue, "\U000F0335");
-          it.printf(20, 155, id(icon_font_80), light_blue,"\U000F0335");
+          it.printf(20, 55, id(my_font), white, "Wohnzimmer");
+          it.printf(145, 55, id(my_font), white, "Bad");
+          it.printf(235, 55, id(my_font), white, "Adrian");
+          draw_light(id(light_wohnzimmer_stehlampe_state), 20, 75, "\U000F08DD", "\U000F17C8");
+          draw_light(id(light_wohnzimmer_state), 20, 155, "\U000F06E8", "\U000F0335");
+          draw_light(id(light_bad_state), 120, 75, "\U000F1252", "\U000F1252");
           it.printf(120, 155, id(icon_font_80), light_blue,"\U000F0335");
-          it.printf(220, 155, id(icon_font_80), light_blue, "\U000F0335");
+          draw_light(id(light_saule_state), 220, 75, "\U000F07D5", "\U000F07D5");
+          draw_light(id(light_buero_state), 220, 155, "\U000F095F", "\U000F1B1F");
 
       - id: media_page ##### media player page #####
         lambda: |-
@@ -2682,7 +2821,7 @@ binary_sensor:
       min_length: 10ms
       max_length: 500ms
       then:
-        - display.page.show: climate_page
+        - display.page.show: flat_page  #climate_page
         - component.update: s3_box_lcd
 
   - platform: touchscreen
@@ -2777,6 +2916,7 @@ binary_sensor:
     y_min: 90
     y_max: 170
           #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+          # todo: Adi
     # on_click:
       # min_length: 10ms
       # max_length: 500ms
@@ -2870,27 +3010,30 @@ binary_sensor:
       #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
 
         # - component.update: s3_box_lcd
-##### lights page #####
+
+#### flat page #####
   - platform: touchscreen
-    page_id: lights_page
-    id: lights1
+    page_id: flat_page
+    id: flat1
     internal: true
     x_min: 5
     x_max: 105
     y_min: 90
     y_max: 170
           #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+          # todo: Adi
     # on_click:
       # min_length: 10ms
       # max_length: 500ms
       # then:
+
       #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
 
         # - component.update: s3_box_lcd
 
   - platform: touchscreen
-    page_id: lights_page
-    id: lights2
+    page_id: flat_page
+    id: flat2
     internal: true
     x_min: 110
     x_max: 210
@@ -2906,8 +3049,8 @@ binary_sensor:
         # - component.update: s3_box_lcd
 
   - platform: touchscreen
-    page_id: lights_page
-    id: lights3
+    page_id: flat_page
+    id: flat3
     internal: true
     x_min: 215
     x_max: 315
@@ -2923,8 +3066,8 @@ binary_sensor:
         # - component.update: s3_box_lcd
 
   - platform: touchscreen
-    page_id: lights_page
-    id: lights4
+    page_id: flat_page
+    id: flat14
     internal: true
     x_min: 5
     x_max: 105
@@ -2938,6 +3081,117 @@ binary_sensor:
       #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
 
         # - component.update: s3_box_lcd
+
+  - platform: touchscreen
+    page_id: flat_page
+    id: flat5
+    internal: true
+    x_min: 110
+    x_max: 210
+    y_min: 175
+    y_max: 240
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    # on_click:
+      # min_length: 10ms
+      # max_length: 500ms
+      # then:
+      #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
+
+        # - component.update: s3_box_lcd
+
+  - platform: touchscreen
+    page_id: flat_page
+    id: flat6
+    internal: true
+    x_min: 215
+    x_max: 315
+    y_min: 175
+    y_max: 240
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    # on_click:
+      # min_length: 10ms
+      # max_length: 500ms
+      # then:
+      #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
+
+        # - component.update: s3_box_lcd
+
+##### lights page #####
+  - platform: touchscreen
+    page_id: lights_page
+    id: lights1
+    internal: true
+    x_min: 5
+    x_max: 105
+    y_min: 90
+    y_max: 170
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    on_click:
+      min_length: 10ms
+      max_length: 500ms
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.wohnzimmer_stehlampe
+        - component.update: s3_box_lcd
+
+  - platform: touchscreen
+    page_id: lights_page
+    id: lights2
+    internal: true
+    x_min: 110
+    x_max: 210
+    y_min: 90
+    y_max: 170
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    on_click:
+      min_length: 10ms
+      max_length: 500ms
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.switch_bad
+        - component.update: s3_box_lcd
+
+  - platform: touchscreen
+    page_id: lights_page
+    id: lights3
+    internal: true
+    x_min: 215
+    x_max: 315
+    y_min: 90
+    y_max: 170
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    on_click:
+      min_length: 10ms
+      max_length: 500ms
+      then:
+        - homeassistant.service:
+            service: light.toggle
+            data:
+              entity_id: light.saule
+        - component.update: s3_box_lcd
+
+  - platform: touchscreen
+    page_id: lights_page
+    id: lights4
+    internal: true
+    x_min: 5
+    x_max: 105
+    y_min: 175
+    y_max: 240
+          #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
+    on_click:
+      min_length: 10ms
+      max_length: 500ms
+      then:
+        - homeassistant.service:
+            service: light.toggle
+            data:
+              entity_id: light.wohnzimmer
+        - component.update: s3_box_lcd
 
   - platform: touchscreen
     page_id: lights_page
@@ -2965,13 +3219,15 @@ binary_sensor:
     y_min: 175
     y_max: 240
           #### make sure that the following 4 lines are uncommented by removing the prefixed '#' ###
-    # on_click:
-      # min_length: 10ms
-      # max_length: 500ms
-      # then:
-      #### add your action here - make sure to uncomment the following  line by removing the prefixed '#' and keep these below your action #####
-
-        # - component.update: s3_box_lcd
+    on_click:
+      min_length: 10ms
+      max_length: 500ms
+      then:
+        - homeassistant.service:
+            service: switch.toggle
+            data:
+              entity_id: switch.smart_switch_buro_outlet
+        - component.update: s3_box_lcd
 
 ##### media player #####
   - platform: touchscreen
