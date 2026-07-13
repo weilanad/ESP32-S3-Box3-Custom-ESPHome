@@ -833,6 +833,11 @@ text_sensor:
     id: light_bad_state
     entity_id: switch.switch_bad
     internal: True
+  
+  - platform: homeassistant
+    id: light_gang_state
+    entity_id: licht.licht_gang
+    internal: True
 
   - platform: homeassistant
     id: light_saule_state
@@ -1814,9 +1819,23 @@ display:
           it.printf(20, 155, id(icon_font_80), light_blue,"\U000F050F");
           it.printf(40, 200, id(my_font3), white, "%.f", id(Temperature_kuche).state);
 
-      - id: flat_page ##### flat page #####
+      - id: flat_page
         lambda: |-
           it.fill(id(black));
+
+          auto draw_room = [&](int x, int y, int w, int h,
+                               bool light_on = false,
+                               bool show_icon = true) {
+            auto bg_color = light_on ? id(bg_brown) : id(bg_charcoal);
+
+            // Hintergrund
+            it.filled_rectangle(x + 1, y + 1, w - 2, h - 2, bg_color);
+
+            // Rahmen
+            it.rectangle(x, y, w, h, id(white));
+
+          };
+
           int SCREEN_W = 320;
           int SCREEN_H = 240;
           int bw = 30;
@@ -1824,55 +1843,66 @@ display:
           int gh = (SCREEN_H - 2 * bw) / 2;
           int sw = gw * 8 / 10;
 
-          // Get center coordinates
-          // Groß links
+          // Raumkoordinaten
           int gl_x = bw;
           int gl_y = bw;
-          int gl_cx = gl_x + gw / 2;
-          int gl_cy = gl_y + gh / 2;
 
-          // Groß rechts
           int gr_x = bw + gw;
           int gr_y = bw;
-          int gr_cx = gr_x + gw / 2;
-          int gr_cy = gr_y + gh / 2;
 
-          // Klein links
           int kl_x = bw;
           int kl_y = bw + gh;
-          int kl_cx = kl_x + sw / 2;
-          int kl_cy = kl_y + gh / 2;
 
-          // Bad
           int bad_x = bw + gw + gw - sw;
           int bad_y = bw + gh;
-          int bad_cx = bad_x + sw / 2;
-          int bad_cy = bad_y + (gh / 2) / 2;
 
-          // Küche
           int kue_x = bw + gw + gw - sw;
           int kue_y = bw + gh + gh / 2;
-          int kue_cx = kue_x + sw / 2;
-          int kue_cy = kue_y + (gh / 2) / 2;
 
-          // Outline
-          it.rectangle(bw, bw, SCREEN_W - 2 * bw, SCREEN_H - 2 * bw, white);
-          // Groß links
-          it.rectangle(bw, bw, gw, gh, white);
-          // Groß rechts
-          it.rectangle(bw + gw, bw, gw, gh, white);
-          // Klein links
-          it.rectangle(bw, bw + gh, sw, gh, white);
-          // Bad
-          it.rectangle(bw + gw + gw - sw, bw + gh, sw, int(gh / 2), white);
-          // Küche
-          it.rectangle(bw + gw + gw - sw, bw + gh + int(gh / 2), sw, int(gh / 2), white);
+          // Lichtstatus je Raum
+          bool wohnzimmer_on =
+            id(light_wohnzimmer_state).state == "on" ||
+            id(light_wohnzimmer_stehlampe_state).state == "on";
 
-          it.printf(gl_cx, gl_cy, id(my_font3), white, "%.f", id(Temperature_gross_links).state);
-          it.printf(gr_cx, gr_cy, id(my_font3), white, "%.f", id(Temperature_gross_rechts).state);
-          it.printf(kl_cx, kl_cy, id(my_font3), white, "%.f", id(Temperature_klein_links).state);
-          it.printf(kue_cx, kue_cy, id(my_font3), white, "%.f", id(Temperature_kuche).state);
-          
+          bool buero_on = 
+            id(light_buero_state).state == "on" ||
+            id(light_saule_state).state == "on";
+
+          bool bad_on = id(light_bad_state).state == "on";
+          bool gang_on = id(light_gang_state).state == "on";
+
+          // Außenrahmen
+          it.rectangle(bw, bw, SCREEN_W - 2 * bw, SCREEN_H - 2 * bw, id(white));
+
+          // Räume
+          draw_room(
+            gl_x, gl_y, gw, gh,
+            wohnzimmer_on
+          );
+
+          draw_room(
+            gr_x, gr_y, gw, gh,
+            buero_on
+          );
+
+          draw_room(
+            ?, ?, ?, ?,
+            gang_on
+          );
+  
+          draw_room(
+            kl_x, kl_y, sw, gh,
+            wohnzimmer_on
+          );
+
+          draw_room(
+            bad_x, bad_y, sw, gh / 2,
+            bad_on
+          );
+
+          draw_room(
+            kue_x, kue_y, sw, gh / 2,
+          );
 
       - id: lights_page ##### lights page ####
         lambda: |-
@@ -2124,7 +2154,7 @@ display:
           } else {
             it.strftime(160, 88, id(my_font2), TextAlign::CENTER, "%l:%M%p", id(ha_time).now());
           }
-          it.printf(160, 181, id(my_font2), light_blue, TextAlign::CENTER, "%.f°C", id(s3temp).state); // remove for no sensor version
+          it.printf(160, 181, id(my_font2), light_blue, TextAlign::CENTER, "%.f°C", id(Temperature_gross_links).state); // remove for no sensor version
 
       - id: ota_page ##### firmware uploading page #####
         lambda: |-
@@ -2821,7 +2851,7 @@ binary_sensor:
       min_length: 10ms
       max_length: 500ms
       then:
-        - display.page.show: flat_page  #climate_page
+        - display.page.show: climate_page
         - component.update: s3_box_lcd
 
   - platform: touchscreen
@@ -2888,7 +2918,7 @@ binary_sensor:
       min_length: 10ms
       max_length: 500ms
       then:
-        - display.page.show: scenes_page
+        - display.page.show: flat_page
         - component.update: s3_box_lcd
 
   - platform: touchscreen
